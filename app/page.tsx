@@ -346,6 +346,8 @@ export default function Page() {
             </div>
           </div>
         </header>
+
+        {/* Every  sections displays here */}
         <div className="mx-auto max-w-[1500px] p-5 md:p-8">
           {isDashboard ? (
             <Dashboard
@@ -396,7 +398,7 @@ function Dashboard({
   navigate: (s: string) => void;
   showToast: (s: string) => void;
 }) {
-  const bars = [45, 62, 54, 78, 68, 88, 74, 92, 67, 84, 72, 96];
+  const bars = [45, 62, 54, 78, 68, 100, 74, 92, 67, 84, 72, 96];
   return (
     <div className="flex flex-col gap-7">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
@@ -443,7 +445,9 @@ function Dashboard({
           tone="amber"
         />
       </div>
-      <div className="grid gap-5 xl:grid-cols-[1.55fr_1fr]">
+
+      {/* Graphic of sales */}
+      <div className="grid gap-5 xl:grid-cols-[1.55fr_1fr] border-2 ">
         <div className="rounded-2xl border border-[#e7ebe7] bg-white p-5 md:p-6">
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
             <div>
