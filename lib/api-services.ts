@@ -7,21 +7,45 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const productService = {
-  list: (params = '') => request(`/products${params}`),
+  list: (params = '') => request<any[]>(`/products${params}`),
   getById: (id: string) => request(`/products/${id}`),
   getByBarcode: (barcode: string) => request(`/products/barcode/${encodeURIComponent(barcode)}`),
-  create: (payload: unknown) => request('/products', { method: 'POST', body: JSON.stringify(payload) }),
+  create: (payload: unknown) => request('/products/create', { method: 'POST', body: JSON.stringify(payload) }),
   update: (id: string, payload: unknown) => request(`/products/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
   remove: (id: string) => request(`/products/${id}`, { method: 'DELETE' }),
 }
 
+export type InventoryItem = {
+  id: number;
+  name: string;
+  sku: string;
+  barcode: string | null;
+  price: number;
+  stock: number;
+  min_stock: number;
+  category: string | null;
+  supplier: string | null;
+};
+
+type InventoryResponse = {
+  message: string;
+  product: InventoryItem[];
+};
 export const inventoryService = {
-  list: () => request('/inventory'),
+  list: () => request<InventoryResponse>('/inventory'),
   adjust: (payload: unknown) => request('/inventory/adjust', { method: 'POST', body: JSON.stringify(payload) }),
 }
+export type Sale = {
+  id: number;
+  total: string;
+  payment_method: string;
+  status: string;
+  created_at: string;
+  customer: string | null;
+};
 
 export const salesService = {
-  list: (params = '') => request(`/sales${params}`),
+  list: (params = '') => request<Sale[]>(`/sales${params}`),
   create: (payload: unknown) => request('/sales', { method: 'POST', body: JSON.stringify(payload) }),
 }
 
@@ -30,12 +54,43 @@ export const customerService = {
   create: (payload: unknown) => request('/customers', { method: 'POST', body: JSON.stringify(payload) }),
 }
 
+export type Category = {
+  id: number;
+  name: string;
+  created_at: string;
+};
+
+export type Supplier = {
+  id: number;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  created_at: string;
+};
+
+export const categoryService = {
+  list: (params = "") => request<Category[]>(`/categories${params}`),
+  create: (payload: unknown) =>
+    request("/categories", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+};
+
 export const supplierService = {
-  list: (params = '') => request(`/suppliers${params}`),
+  list: (params = '') => request<Supplier[]>(`/suppliers${params}`),
   create: (payload: unknown) => request('/suppliers', { method: 'POST', body: JSON.stringify(payload) }),
 }
 
 export const dashboardService = { getSummary: () => request('/dashboard') }
-export const reportService = { sales: (params = '') => request(`/reports/sales${params}`) }
+
+export type SalesReport = {
+  date: string;
+  total_sales: string;
+  total_revenue: string;
+};
+
+
+export const reportService = { sales: (params = '') => request<SalesReport[]>(`/reports/sales${params}`) }
 
 export { request }

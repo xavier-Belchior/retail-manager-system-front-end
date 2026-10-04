@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, type FormEvent } from "react";
 import {
   AlertTriangle,
   ArrowDownRight,
@@ -8,6 +8,7 @@ import {
   BarChart3,
   Bell,
   Boxes,
+  Check,
   ChevronDown,
   CircleDollarSign,
   ClipboardList,
@@ -16,6 +17,7 @@ import {
   LayoutDashboard,
   Menu,
   Package,
+  Pencil,
   Plus,
   ScanLine,
   Search,
@@ -28,103 +30,18 @@ import {
   WalletCards,
   X,
 } from "lucide-react";
-
-const products = [
-  {
-    name: "Arroz Tio Lucas 5kg",
-    sku: "ARZ-005",
-    barcode: "7891234567890",
-    category: "Mercearia",
-    price: 4850,
-    stock: 42,
-    min: 20,
-    supplier: "Distribuidora Luanda",
-    status: "Em stock",
-  },
-  {
-    name: "Óleo Alimentar Kizomba 1L",
-    sku: "OLE-001",
-    barcode: "7891234567891",
-    category: "Mercearia",
-    price: 1750,
-    stock: 8,
-    min: 15,
-    supplier: "Casa dos Óleos",
-    status: "Stock baixo",
-  },
-  {
-    name: "Sabão Azul Tradicional",
-    sku: "SAB-010",
-    barcode: "7891234567892",
-    category: "Higiene",
-    price: 900,
-    stock: 76,
-    min: 25,
-    supplier: "Importadora Sul",
-    status: "Em stock",
-  },
-  {
-    name: "Leite Nido 400g",
-    sku: "LEI-004",
-    barcode: "7891234567893",
-    category: "Laticínios",
-    price: 6200,
-    stock: 0,
-    min: 10,
-    supplier: "Distribuidora Luanda",
-    status: "Esgotado",
-  },
-  {
-    name: "Massa Alimentícia 500g",
-    sku: "MAS-002",
-    barcode: "7891234567894",
-    category: "Mercearia",
-    price: 1200,
-    stock: 31,
-    min: 12,
-    supplier: "Casa dos Óleos",
-    status: "Em stock",
-  },
-];
-
-const sales = [
-  [
-    "#VND-1048",
-    "Hoje, 14:32",
-    "Cliente balcão",
-    "M. António",
-    "24.500 Kz",
-    "Dinheiro",
-    "Concluída",
-  ],
-  [
-    "#VND-1047",
-    "Hoje, 13:18",
-    "Maria José",
-    "A. Francisco",
-    "18.750 Kz",
-    "Cartão",
-    "Concluída",
-  ],
-  [
-    "#VND-1046",
-    "Hoje, 11:42",
-    "Cliente balcão",
-    "M. António",
-    "7.200 Kz",
-    "Transferência",
-    "Concluída",
-  ],
-  [
-    "#VND-1045",
-    "Ontem, 17:06",
-    "João Manuel",
-    "A. Francisco",
-    "42.000 Kz",
-    "Dinheiro",
-    "Concluída",
-  ],
-];
+import {
+  categoryService,
+  dashboardService,
+  InventoryItem,
+  inventoryService,
+  reportService,
+  Sale,
+  productService,
+  SalesReport,
+  salesService,
+  supplierService,
+} from "@/lib/api-services";
 
 const navGroups = [
   {
@@ -203,21 +120,63 @@ function Status({ value }: { value: string }) {
     </span>
   );
 }
+type Product = {
+  id: number;
+  name: string;
+  sku: string;
+  barcode: string | null;
+  category_id: number | null;
+  category: string | null;
+  price: string;
+  stock: number;
+  min_stock: number;
+  min: number;
+  supplier_id: number | null;
+  supplier: string | null;
+  status: string;
+};
 
 export default function Page() {
   const [active, setActive] = useState("Dashboard");
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [period, setPeriod] = useState("Últimos 7 dias");
   const [query, setQuery] = useState("");
   const [scannerOpen, setScannerOpen] = useState(false);
   const [toast, setToast] = useState("");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [addProductOpen, setAddProductOpen] = useState(false);
+
+  const loadProducts = async () => {
+    try {
+      const data = await productService.list();
+
+      const formattedProducts = data.map((product) => ({
+        ...product,
+        min: product.min_stock,
+        status:
+          product.stock === 0
+            ? "Esgotado"
+            : product.stock <= product.min_stock
+              ? "Stock baixo"
+              : "Em stock",
+      }));
+
+      setProducts(formattedProducts);
+    } catch (error) {
+      console.error("Error loading products:", error);
+    }
+  };
+
+  useEffect(() => {
+    loadProducts();
+  }, []);
   const filteredProducts = useMemo(
     () =>
       products.filter((p) =>
         `${p.name} ${p.sku}`.toLowerCase().includes(query.toLowerCase()),
       ),
-    [query],
+    [products, query],
   );
+
   const isDashboard = active === "Dashboard";
 
   function navigate(label: string) {
@@ -231,7 +190,6 @@ export default function Page() {
 
   return (
     <div className="min-h-screen bg-[#f6f8f6] text-[#17251e]  ">
-
       {/* Sidebar main */}
       <aside
         className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-[#e1e8e2] bg-[#fbfcfb] px-4 py-5 transition-transform lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
@@ -311,7 +269,7 @@ export default function Page() {
 
       {/* Main content */}
       <main className="lg:pl-64">
-                 {/* Header */}
+        {/* Header */}
         <header className="sticky top-0 z-20 flex h-20 items-center justify-between border-b border-[#e7ece8] bg-[#f8faf8]/90 px-5 backdrop-blur md:px-8">
           <div className="flex items-center gap-3">
             <button
@@ -350,12 +308,7 @@ export default function Page() {
         {/* Every  sections displays here */}
         <div className="mx-auto max-w-[1500px] p-5 md:p-8">
           {isDashboard ? (
-            <Dashboard
-              period={period}
-              setPeriod={setPeriod}
-              navigate={navigate}
-              showToast={showToast}
-            />
+            <Dashboard navigate={navigate} showToast={showToast} />
           ) : (
             <Section
               active={active}
@@ -365,6 +318,9 @@ export default function Page() {
               setScannerOpen={setScannerOpen}
               showToast={showToast}
               navigate={navigate}
+              setAddProductOpen={setAddProductOpen}
+              addProductOpen={addProductOpen}
+              reloadProducts={loadProducts}
             />
           )}
         </div>
@@ -388,17 +344,80 @@ export default function Page() {
 }
 
 function Dashboard({
-  period,
-  setPeriod,
   navigate,
   showToast,
 }: {
-  period: string;
-  setPeriod: (s: string) => void;
   navigate: (s: string) => void;
   showToast: (s: string) => void;
 }) {
-  const bars = [45, 62, 54, 78, 68, 100, 74, 92, 67, 84, 72, 96];
+  const [dashboard, setDashboard] = useState<{
+    total_products: number;
+    total_sales: number;
+    total_revenue: number;
+    sales_today: number;
+    revenue_today: number;
+    low_stock: number;
+  } | null>(null);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [salesReport, setSalesReport] = useState<SalesReport[]>([]);
+  const [period, setPeriod] = useState("7d");
+
+  const formatCurrency = (value: number) => {
+    return `${Number(value).toLocaleString("pt-AO")} Kz`;
+  };
+  const chartData = salesReport.map((item) => ({
+    date: new Date(item.date).toLocaleDateString("pt-AO", {
+      day: "2-digit",
+      month: "short",
+    }),
+    revenue: Number(item.total_revenue),
+  }));
+  useEffect(() => {
+    async function loadDashboard() {
+      try {
+        const data = await dashboardService.getSummary();
+        setDashboard(data);
+      } catch (error) {
+        console.error("Error loading dashboard", error);
+      }
+    }
+
+    async function loadInventory() {
+      try {
+        const data = await inventoryService.list();
+        setInventory(data.product);
+      } catch (error) {
+        console.error("Error loading inventory", error);
+      }
+    }
+
+    async function loadSales() {
+      try {
+        const data = await salesService.list();
+        setSales(data);
+      } catch (error) {
+        console.error("Error loading sales", error);
+      }
+    }
+
+    loadSales();
+    loadInventory();
+    loadDashboard();
+  }, []);
+
+  useEffect(() => {
+    async function loadSalesReport() {
+      try {
+        const data = await reportService.sales(`?period=${period}`);
+        setSalesReport(data);
+      } catch (error) {
+        console.error("Error loading sales report:", error);
+      }
+    }
+
+    loadSalesReport();
+  }, [period]);
   return (
     <div className="flex flex-col gap-7">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
@@ -422,26 +441,29 @@ function Dashboard({
         <StatCard
           icon={CircleDollarSign}
           label="Vendas totais"
-          value="2.845.600 Kz"
-          change="12,5%"
+          value={dashboard ? formatCurrency(dashboard.total_revenue) : "..."}
+          change={`${dashboard?.total_sales ?? 0} vendas`}
         />
+
         <StatCard
           icon={WalletCards}
           label="Vendas de hoje"
-          value="184.500 Kz"
-          change="8,2%"
+          value={dashboard ? formatCurrency(dashboard.revenue_today) : "..."}
+          change={`${dashboard?.sales_today ?? 0} vendas`}
         />
+
         <StatCard
           icon={Package}
           label="Total de produtos"
-          value="248"
-          change="4,1%"
+          value={dashboard?.total_products?.toString() ?? "..."}
+          change="No catálogo"
         />
+
         <StatCard
           icon={AlertTriangle}
           label="Produtos com stock baixo"
-          value="12"
-          change="3 novos"
+          value={dashboard?.low_stock?.toString() ?? "..."}
+          change="Atenção necessária"
           tone="amber"
         />
       </div>
@@ -461,37 +483,52 @@ function Dashboard({
               onChange={(e) => setPeriod(e.target.value)}
               className="rounded-lg border border-[#e1e8e2] bg-white px-3 py-2 text-xs font-semibold text-[#56655d] outline-none"
             >
-              <option>Hoje</option>
-              <option>Últimos 7 dias</option>
-              <option>Últimos 30 dias</option>
-              <option>Este ano</option>
+              <option value="today">Hoje</option>
+              <option value="7d">Últimos 7 dias</option>
+              <option value="30d">Últimos 30 dias</option>
+              <option value="year">Este ano</option>
             </select>
           </div>
           <div className="mt-8 flex h-48 items-end gap-2 border-b border-l border-[#e6ece7] px-3 pb-0 md:gap-4">
-            {bars.map((height, i) => (
-              <div
-                key={i}
-                className="group flex h-full flex-1 flex-col justify-end"
-              >
-                <div
-                  style={{ height: `${height}%` }}
-                  className={`relative rounded-t-md ${i === 7 ? "bg-[#145a43]" : "bg-[#cbe4d5]"} transition-all group-hover:bg-[#75b08d]`}
-                >
-                  <span className="absolute -top-6 left-1/2 hidden -translate-x-1/2 rounded bg-[#173d2e] px-1.5 py-1 text-[10px] text-white group-hover:block">
-                    {Math.round(height * 1850)} Kz
-                  </span>
-                </div>
+            <div className="mt-6">
+              <div className="flex h-56 items-end gap-3">
+                {chartData.map((item) => {
+                  const maxRevenue = Math.max(
+                    ...chartData.map((item) => item.revenue),
+                    1,
+                  );
+
+                  const height = (item.revenue / maxRevenue) * 100;
+
+                  return (
+                    <div
+                      key={item.date}
+                      className="flex h-full flex-1 flex-col justify-end"
+                    >
+                      <div className="group relative flex flex-1 items-end">
+                        <div
+                          className="w-full rounded-t-lg bg-[#26372e] transition-all hover:bg-[#536159]"
+                          style={{ height: `${height}%` }}
+                        >
+                          <div className="absolute -top-8 left-1/2 hidden -translate-x-1/2 rounded-md bg-[#26372e] px-2 py-1 text-xs text-white group-hover:block">
+                            {item.revenue.toLocaleString("pt-AO")} Kz
+                          </div>
+                        </div>
+                      </div>
+
+                      <p className="mt-2 text-center text-xs text-[#89958e]">
+                        {item.date}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
+            </div>
           </div>
           <div className="mt-3 flex justify-between pl-3 text-[10px] text-[#9aa49e]">
-            <span>01 Set</span>
-            <span>03 Set</span>
-            <span>05 Set</span>
-            <span>07 Set</span>
-            <span>09 Set</span>
-            <span>11 Set</span>
-            <span>13 Set</span>
+            {chartData.map((item) => (
+              <span key={item.date}>{item.date}</span>
+            ))}
           </div>
         </div>
         <div className="rounded-2xl border border-[#e7ebe7] bg-white p-5 md:p-6">
@@ -510,8 +547,8 @@ function Dashboard({
             </button>
           </div>
           <div className="mt-5 flex flex-col gap-4">
-            {products
-              .filter((p) => p.stock <= p.min)
+            {inventory
+              .filter((p) => p.stock <= p.min_stock)
               .slice(0, 3)
               .map((p) => (
                 <div key={p.sku} className="flex items-center gap-3">
@@ -521,7 +558,7 @@ function Dashboard({
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">{p.name}</p>
                     <p className="text-xs text-[#89958e]">
-                      Mínimo: {p.min} un.
+                      Mínimo: {p.min_stock} un.
                     </p>
                   </div>
                   <div className="text-right">
@@ -571,22 +608,34 @@ function Dashboard({
               </tr>
             </thead>
             <tbody>
-              {sales.map((row) => (
+              {sales.slice(0, 4).map((sale) => (
                 <tr
-                  key={row[0]}
+                  key={sale.id}
                   className="border-t border-[#edf1ed] text-[#536159]"
                 >
                   <td className="px-6 py-4 font-semibold text-[#26372e]">
-                    {row[0]}
+                    #{sale.id}
                   </td>
-                  {row.slice(1, 6).map((cell, i) => (
-                    <td key={i} className="px-6 py-4">
-                      {cell}
-                    </td>
-                  ))}
+
+                  <td className="px-6 py-4">
+                    {new Date(sale.created_at).toLocaleString("pt-AO")}
+                  </td>
+
+                  <td className="px-6 py-4">
+                    {sale.customer || "Cliente balcão"}
+                  </td>
+
+                  <td className="px-6 py-4">—</td>
+
+                  <td className="px-6 py-4 font-semibold text-[#26372e]">
+                    {Number(sale.total).toLocaleString("pt-AO")} Kz
+                  </td>
+
+                  <td className="px-6 py-4">{sale.payment_method}</td>
+
                   <td className="px-6 py-4">
                     <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                      {row[6]}
+                      {sale.status}
                     </span>
                   </td>
                 </tr>
@@ -604,25 +653,98 @@ function Section({
   query,
   setQuery,
   products,
+  inventory,
   setScannerOpen,
   showToast,
   navigate,
+  setAddProductOpen,
+  addProductOpen,
+  reloadProducts,
 }: {
   active: string;
   query: string;
   setQuery: (s: string) => void;
-  products: typeof products;
+  products: products[];
+  inventory: InventoryItem[];
   setScannerOpen: (b: boolean) => void;
   showToast: (s: string) => void;
   navigate: (s: string) => void;
+  setAddProductOpen: (open: boolean) => void;
+  addProductOpen: boolean;
+  reloadProducts: () => Promise<void>;
 }) {
-  const data = active === "Produtos" || active === "Estoque" ? products : [];
+  const data =
+    active === "Produtos" ? products : active === "Estoque" ? inventory : [];
   const title =
     active === "Produtos"
       ? "Produtos"
       : active === "Estoque"
         ? "Gestão de estoque"
         : active;
+  const [saved, setSaved] = useState(false);
+  const [category, setCategory] = useState("");
+  const [categories, setCategories] = useState<any[]>([]);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [supplier, setSupplier] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [stockAdjustmentOpen, setStockAdjustmentOpen] = useState(false);
+  const [editProductOpen, setEditProductOpen]=useState(false)
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    try {
+      const formData = new FormData(event.currentTarget);
+      const payload = {
+        name: String(formData.get("name")),
+        sku: String(formData.get("sku")),
+        barcode: String(formData.get("barcode") || "") || null,
+        category_id: Number(formData.get("category")),
+        supplier_id: Number(formData.get("supplier")),
+        price: Number(formData.get("price")),
+        stock: Number(formData.get("initialStock")),
+        min_stock: Number(formData.get("minimumStock")),
+      };
+
+      await productService.create(payload);
+      await reloadProducts();
+      setSaved(true);
+      window.setTimeout(() => {
+        setAddProductOpen(false);
+        setSaved(false);
+      }, 900);
+    } catch (error) {
+      console.error("Error creating product:", error);
+      showToast("Error ao criar producto");
+    }
+
+    // const productData = {
+    //   name: formData.get("name"),
+    //   sku: formData.get("sku"),
+    //   barcode: formData.get("barcode"),
+    //   category: formData.get("category"),
+    //   supplier: formData.get("supplier"),
+    //   price: formData.get("price"),
+    //   initialStock: formData.get("initialStock"),
+    //   minimumStock: formData.get("minimumStock"),
+    // };
+  }
+  useEffect(() => {
+    async function loadFormData() {
+      try {
+        const [categoriesData, suppliersData] = await Promise.all([
+          categoryService.list(),
+          supplierService.list(),
+        ]);
+
+        setCategories(categoriesData);
+        setSuppliers(suppliersData);
+      } catch (error) {
+        console.error("Error loading form data:", error);
+      }
+    }
+
+    loadFormData();
+  }, []);
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
@@ -644,10 +766,16 @@ function Section({
           )}
           {["Produtos", "Clientes", "Fornecedores"].includes(active) && (
             <button
-              onClick={() =>
-                showToast(`Formulário de ${active.toLowerCase()} aberto`)
-              }
-              className="flex items-center gap-2 rounded-xl bg-[#145a43] px-4 py-2.5 text-sm font-semibold text-white"
+              onClick={() => {
+                if (active === "Produtos") {
+                  setSaved(false);
+
+                  setAddProductOpen(true);
+                } else {
+                  showToast(`Formulário de ${active.toLowerCase()} aberto`);
+                }
+              }}
+              className="hover:cursor-pointer flex items-center gap-2 rounded-xl bg-[#145a43] px-4 py-2.5 text-sm font-semibold text-white"
             >
               <Plus className="size-4" />
               Adicionar
@@ -667,6 +795,15 @@ function Section({
           setQuery={setQuery}
           setScannerOpen={setScannerOpen}
           showToast={showToast}
+          onAdJustStock={(product) => {
+            setSelectedProduct(product);
+            setStockAdjustmentOpen(true);
+          }}
+
+          onEditProduct={(product)=>{
+            setSelectedProduct(product)
+            setEditProductOpen(true)
+          }}
         />
       ) : (
         <GenericSection
@@ -674,6 +811,248 @@ function Section({
           showToast={showToast}
           navigate={navigate}
         />
+      )}
+
+      {/*stockAdjustmentOpen productTable */}
+      {stockAdjustmentOpen && selectedProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#243832]/55  backdrop-blur-[5px] p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-[#26372e]">Ajustar stock</h3>
+
+                <p className="mt-1 text-sm text-[#86928b]">
+                  {selectedProduct.name}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setStockAdjustmentOpen(false)}
+                className="rounded-lg p-2 text-[#708078] hover:bg-[#f0f5f1]"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <div className="mb-5 rounded-xl bg-[#f5f8f5] p-4">
+              <p className="text-xs text-[#86928b]">Stock atual</p>
+
+              <p className="mt-1 text-2xl font-bold text-[#26372e]">
+                {selectedProduct.stock} un.
+              </p>
+            </div>
+
+            <form
+              onSubmit={async (event) => {
+                event.preventDefault();
+                if (!selectedProduct) return;
+
+                try {
+                  const formData = new FormData(event.currentTarget);
+                  const quantity = Number(formData.get("quantity"));
+
+                  await inventoryService.adjust({
+                    product_id: selectedProduct.id,
+                    quantity,
+                  });
+
+                  await reloadProducts();
+                  setStockAdjustmentOpen(false);
+                  setSelectedProduct(null);
+
+                  showToast("Stock ajustado com sucesso");
+                } catch (error) {
+                  console.error("Error ajusting stock:", error);
+                  showToast("Error ao justar stock");
+                }
+              }}
+            >
+              <label className="mb-2 block text-sm font-semibold">
+                Quantidade
+              </label>
+
+              <input
+                name="quantity"
+                type="number"
+                min="1"
+                required
+                placeholder="Ex: 10"
+                className="w-full rounded-xl border border-[#e1e8e2] px-4 py-3 outline-none focus:border-[#79a98b]"
+              />
+
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setStockAdjustmentOpen(false)}
+                  className="rounded-xl border border-[#e1e8e2] px-4 py-2.5 text-sm font-semibold"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="submit"
+                  className="rounded-xl bg-[#006b52] px-4 py-2.5 text-sm font-semibold text-white"
+                >
+                  Ajustar stock
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {addProductOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#243832]/55 px-4 py-6 backdrop-blur-[5px]">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="product-dialog-title"
+            className="flex max-h-[calc(100vh-48px)] w-full max-w-[672px] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_24px_70px_rgba(29,55,46,0.22)]"
+          >
+            <div className="flex items-start justify-between border-b border-[#e5ebe8] px-5 py-5 sm:px-6">
+              <div>
+                <h2
+                  id="product-dialog-title"
+                  className="text-[17px] font-bold tracking-[-0.01em] text-[#23312d]"
+                >
+                  Adicionar produto
+                </h2>
+                <p className="mt-1 text-[12px] text-[#87958f]">
+                  Os dados serão enviados para a API de produtos.
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Fechar modal"
+                onClick={() => setAddProductOpen(false)}
+                className="rounded-md p-1 text-[#8a9993] transition-colors hover:bg-[#f2f6f4] hover:text-[#42534c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006b52]"
+              >
+                <X aria-hidden="true" className="size-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="overflow-y-auto">
+              <div className="grid grid-cols-1 gap-x-4 gap-y-4 px-5 py-5 sm:grid-cols-2 sm:px-6 sm:py-5">
+                <label className="col-span-full flex flex-col gap-1.5 text-[12px] font-medium text-[#52635c]">
+                  Nome do produto
+                  <input
+                    required
+                    name="name"
+                    placeholder="Ex: Arroz Tio Lucas 5kg"
+                    className="h-11 rounded-[14px] border border-[#dce5e0] px-3.5 text-sm text-[#33443d] outline-none placeholder:text-[#a8b3ae] focus:border-[#006b52] focus:ring-2 focus:ring-[#006b52]/10"
+                  />
+                </label>
+
+                <label className="flex flex-col gap-1.5 text-[12px] font-medium text-[#52635c]">
+                  SKU
+                  <input
+                    required
+                    name="sku"
+                    placeholder="ARZ-005"
+                    className="h-11 rounded-[14px] border border-[#dce5e0] px-3.5 text-sm text-[#33443d] outline-none placeholder:text-[#a8b3ae] focus:border-[#006b52] focus:ring-2 focus:ring-[#006b52]/10"
+                  />
+                </label>
+                <label className="flex flex-col gap-1.5 text-[12px] font-medium text-[#52635c]">
+                  Código de barras
+                  <input
+                    name="barcode"
+                    inputMode="numeric"
+                    placeholder="7891234567890"
+                    className="h-11 rounded-[14px] border border-[#dce5e0] px-3.5 text-sm text-[#33443d] outline-none placeholder:text-[#a8b3ae] focus:border-[#006b52] focus:ring-2 focus:ring-[#006b52]/10"
+                  />
+                </label>
+
+                <label className="relative flex flex-col gap-1.5 text-[12px] font-medium text-[#52635c]">
+                  Categoria
+                  <select
+                    value={category}
+                    onChange={(event) => setCategory(event.target.value)}
+                    name="category"
+                    className="h-11 appearance-none rounded-[14px] border border-[#dce5e0] bg-white px-3.5 text-sm text-[#52635c] outline-none focus:border-[#006b52] focus:ring-2 focus:ring-[#006b52]/10"
+                  >
+                    {categories.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    aria-hidden="true"
+                    className="pointer-events-none absolute bottom-3 right-3 size-4 text-[#52635c]"
+                  />
+                </label>
+                <label className="flex flex-col gap-1.5 text-[12px] font-medium text-[#52635c]">
+                  Fornecedor
+                  <select
+                    value={supplier}
+                    onChange={(event) => setSupplier(event.target.value)}
+                    name="supplier"
+                    className="..."
+                  >
+                    <option value="">Selecione um fornecedor</option>
+
+                    {suppliers.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="flex flex-col gap-1.5 text-[12px] font-medium text-[#52635c]">
+                  Preço (Kz)
+                  <input
+                    required
+                    name="price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    className="h-11 rounded-[14px] border border-[#dce5e0] px-3.5 text-sm text-[#33443d] outline-none focus:border-[#006b52] focus:ring-2 focus:ring-[#006b52]/10"
+                  />
+                </label>
+                <label className="flex flex-col gap-1.5 text-[12px] font-medium text-[#52635c]">
+                  Stock inicial
+                  <input
+                    required
+                    name="initialStock"
+                    type="number"
+                    min="0"
+                    className="h-11 rounded-[14px] border border-[#dce5e0] px-3.5 text-sm text-[#33443d] outline-none focus:border-[#006b52] focus:ring-2 focus:ring-[#006b52]/10"
+                  />
+                </label>
+
+                <label className="flex flex-col gap-1.5 text-[12px] font-medium text-[#52635c]">
+                  Stock mínimo
+                  <input
+                    required
+                    name="minimumStock"
+                    type="number"
+                    min="0"
+                    className="h-11 rounded-[14px] border border-[#dce5e0] px-3.5 text-sm text-[#33443d] outline-none focus:border-[#006b52] focus:ring-2 focus:ring-[#006b52]/10"
+                  />
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-2 border-t border-[#e5ebe8] px-5 py-4 sm:px-6">
+                <button
+                  type="button"
+                  onClick={() => setAddProductOpen(false)}
+                  className="h-11 rounded-[14px] border border-[#dce5e0] px-4 text-sm font-semibold text-[#63736d] transition-colors hover:bg-[#f5f8f6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006b52]"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={saved}
+                  className="inline-flex h-11 items-center gap-2 rounded-[14px] bg-[#006b52] px-5 text-sm font-semibold text-white transition-colors hover:bg-[#005740] disabled:cursor-default disabled:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006b52] focus-visible:ring-offset-2"
+                >
+                  {saved && <Check aria-hidden="true" className="size-4" />}
+                  {saved ? "Produto salvo" : "Guardar produto"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -686,6 +1065,8 @@ function ProductTable({
   setQuery,
   setScannerOpen,
   showToast,
+  onAdJustStock,
+  onEditProduct,
 }: any) {
   return (
     <div className="rounded-2xl border border-[#e7ebe7] bg-white">
@@ -745,18 +1126,22 @@ function ProductTable({
                   <p className="text-xs text-[#95a099]">{p.barcode}</p>
                 </td>
                 <td className="px-6 py-4">{p.category}</td>
-                <td className="px-6 py-4 font-semibold">{money(p.price)}</td>
+                <td className="px-6 py-4 font-semibold">
+                  {money(Number(p.price))}
+                </td>
                 <td className="px-6 py-4">
                   <span
                     className={
-                      p.stock <= p.min
+                      p.stock <= p.min_stock
                         ? "font-bold text-amber-700"
                         : "font-semibold text-[#536159]"
                     }
                   >
                     {p.stock} un.
                   </span>
-                  <p className="text-[11px] text-[#9aa49e]">mín. {p.min}</p>
+                  <p className="text-[11px] text-[#9aa49e]">
+                    mín. {p.min_stock}
+                  </p>
                 </td>
                 <td className="px-6 py-4">
                   <Status value={p.status} />
@@ -771,11 +1156,18 @@ function ProductTable({
                       <ScanLine className="size-4" />
                     </button>
                     <button
-                      onClick={() => showToast("Ajuste de stock preparado")}
+                      onClick={() => onAdJustStock(p)}
                       className="rounded-lg p-2 text-[#708078] hover:bg-[#f0f5f1]"
                       aria-label="Ajustar stock"
                     >
                       <ArrowUpRight className="size-4" />
+                    </button>
+                    <button
+                      onClick={() => onEditProduct(p)}
+                      className="rounded-lg p-2 text-[#708078] hover:bg-[#f0f5f1]"
+                      aria-label="Editar produto"
+                    >
+                      <Pencil className="size-4" />
                     </button>
                   </div>
                 </td>
