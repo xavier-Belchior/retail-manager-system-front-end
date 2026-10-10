@@ -1,9 +1,42 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '/api'
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, { headers: { 'Content-Type': 'application/json' }, ...options })
-  if (!response.ok) throw new Error(`API request failed: ${response.status}`)
-  return response.json()
+// async function request<T>(path: string, options?: RequestInit): Promise<T> {
+//   const response = await fetch(`${API_BASE_URL}${path}`, { headers: { 'Content-Type': 'application/json' }, ...options })
+//   if (!response.ok) throw new Error(`API request failed: ${response.status}`)
+//   return response.json()
+// }
+
+async function request<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem("token")
+      : null;
+
+  const headers = new Headers(options.headers);
+
+  headers.set("Content-Type", "application/json");
+
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers,
+  });
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(
+      data?.message || `API request failed: ${response.status}`,
+    );
+  }
+
+  return data as T;
 }
 
 export const productService = {
@@ -46,7 +79,7 @@ export type Sale = {
 
 export const salesService = {
   list: (params = '') => request<Sale[]>(`/sales${params}`),
-  create: (payload: unknown) => request('/sales', { method: 'POST', body: JSON.stringify(payload) }),
+  create: (payload: unknown) => request('/sales/create', { method: 'POST', body: JSON.stringify(payload) }),
 }
 
 export const customerService = {
@@ -92,5 +125,37 @@ export type SalesReport = {
 
 
 export const reportService = { sales: (params = '') => request<SalesReport[]>(`/reports/sales${params}`) }
+
+
+export type LoginResponse = {
+message: string;
+token:string;
+user: {
+id: number;
+name: string;
+email: string;
+role: string;
+};
+};
+
+export type SessionResponse = {
+authenticated: boolean;
+user: {
+id: number;
+role: string;
+};
+};
+
+export const authService = {
+  login: (payload: { identifier: string; password: string }) =>
+    request<LoginResponse>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  me: () => request<SessionResponse>("/auth/me"),
+};
+
+
 
 export { request }
