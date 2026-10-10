@@ -311,11 +311,18 @@ export default function Page() {
                   >
                     <item.icon className="size-[18px]" />
                     {item.label}
-                    {item.label === "Estoque" && (
-                      <span className="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
-                        3
-                      </span>
-                    )}
+                    {item.label === "Estoque" &&
+                      inventory.filter(
+                        (product) => product.stock <= product.min_stock,
+                      ).length > 0 && (
+                        <span className="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                          {
+                            inventory.filter(
+                              (product) => product.stock <= product.min_stock,
+                            ).length
+                          }{" "}
+                        </span>
+                      )}
                   </button>
                 ))}
               </div>
