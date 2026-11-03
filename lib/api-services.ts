@@ -128,16 +128,16 @@ export const reportService = { sales: (params = '') => request<SalesReport[]>(`/
 
 
 export type LoginResponse = {
-message: string;
-token:string;
-user: {
-id: number;
-name: string;
-email: string;
-role: string;
+  message: string;
+  token: string;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+    must_change_password: boolean;
+  };
 };
-};
-
 export type SessionResponse = {
 authenticated: boolean;
 user: {
@@ -154,6 +154,14 @@ export const authService = {
     }),
 
   me: () => request<SessionResponse>("/auth/me"),
+
+  changePassword: (payload:{
+    currentPassword:string;
+    newPassword:string;
+  })=>request <{message: string}>("/auth/change-password",{
+      method:"POST",
+      body:JSON.stringify(payload)
+  })
 };
 
 
