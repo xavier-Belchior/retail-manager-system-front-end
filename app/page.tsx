@@ -207,8 +207,8 @@ function ChangePassword({
           </p>
         </div>
 
-        <div className="text-[#173d2e]">
-          <label className="mb-2 block text-sm font-medium">
+        <div>
+          <label className="mb-2 block text-sm font-medium text-[#173d2e]">
             Palavra-passe atual
           </label>
           <input
@@ -216,12 +216,12 @@ function ChangePassword({
             required
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 p-3 outline-none focus:border-[#145a43]"
+            className="w-full rounded-lg border border-gray-300 p-3 outline-none focus:border-[#145a43] text-[#173d2e]"
           />
         </div>
 
-        <div className="text-[#173d2e]">
-          <label className="mb-2 block text-sm font-medium">
+        <div >
+          <label className="mb-2 block text-sm font-medium text-[#173d2e]">
             Nova palavra-passe
           </label>
           <input
@@ -230,12 +230,12 @@ function ChangePassword({
             minLength={8}
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 p-3 outline-none focus:border-[#145a43]"
+            className="w-full rounded-lg border border-gray-300 p-3 outline-none focus:border-[#145a43] text-[#173d2e]"
           />
         </div>
 
-        <div className="text-[#173d2e]">
-          <label className="mb-2 block text-sm font-medium">
+        <div >
+          <label className="mb-2 block text-sm font-medium text-[#173d2e]">
             Confirmar nova palavra-passe
           </label>
           <input
@@ -243,7 +243,7 @@ function ChangePassword({
             required
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 p-3 outline-none focus:border-[#145a43]"
+            className="w-full rounded-lg border border-gray-300 p-3 outline-none focus:border-[#145a43] text-[#173d2e]"
           />
         </div>
 
