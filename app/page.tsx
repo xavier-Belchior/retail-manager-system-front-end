@@ -207,7 +207,7 @@ function ChangePassword({
           </p>
         </div>
 
-        <div>
+        <div className="text-[#173d2e]">
           <label className="mb-2 block text-sm font-medium">
             Palavra-passe atual
           </label>
@@ -220,7 +220,7 @@ function ChangePassword({
           />
         </div>
 
-        <div>
+        <div className="text-[#173d2e]">
           <label className="mb-2 block text-sm font-medium">
             Nova palavra-passe
           </label>
@@ -234,7 +234,7 @@ function ChangePassword({
           />
         </div>
 
-        <div>
+        <div className="text-[#173d2e]">
           <label className="mb-2 block text-sm font-medium">
             Confirmar nova palavra-passe
           </label>
