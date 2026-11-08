@@ -143,6 +143,7 @@ authenticated: boolean;
 user: {
 id: number;
 role: string;
+must_change_password:boolean
 };
 };
 

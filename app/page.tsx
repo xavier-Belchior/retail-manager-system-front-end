@@ -145,7 +145,125 @@ type Product = {
   supplier: string | null;
   status: string;
 };
+function ChangePassword({
+  onPasswordChanged,
+}: {
+  onPasswordChanged: () => void;
+}) {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+
+    if (newPassword !== confirmPassword) {
+      setError("As novas palavras-passe não coincidem.");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setError("A nova palavra-passe deve ter pelo menos 8 caracteres.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await authService.changePassword({
+        currentPassword,
+        newPassword,
+      });
+
+      onPasswordChanged();
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível alterar a palavra-passe.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-[#edf5f1] px-5 py-10">
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-md space-y-5 rounded-2xl bg-white p-8 shadow-lg"
+      >
+        <div>
+          <h1 className="text-2xl font-bold text-[#173d2e]">
+            Alterar palavra-passe
+          </h1>
+
+          <p className="mt-2 text-sm text-gray-500">
+            Por segurança, precisa de alterar a sua palavra-passe temporária
+            antes de continuar.
+          </p>
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-medium">
+            Palavra-passe atual
+          </label>
+          <input
+            type="password"
+            required
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 p-3 outline-none focus:border-[#145a43]"
+          />
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-medium">
+            Nova palavra-passe
+          </label>
+          <input
+            type="password"
+            required
+            minLength={8}
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 p-3 outline-none focus:border-[#145a43]"
+          />
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-medium">
+            Confirmar nova palavra-passe
+          </label>
+          <input
+            type="password"
+            required
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 p-3 outline-none focus:border-[#145a43]"
+          />
+        </div>
+
+        {error && (
+          <p className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
+            {error}
+          </p>
+        )}
+
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full rounded-lg bg-[#145a43] p-3 font-semibold text-white transition hover:bg-[#104633] disabled:opacity-60"
+        >
+          {isSubmitting ? "A alterar..." : "Alterar palavra-passe"}
+        </button>
+      </form>
+    </main>
+  );
+}
 export default function Page() {
   const [active, setActive] = useState("Dashboard");
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -159,6 +277,7 @@ export default function Page() {
   const [authChecked, setAuthChecked] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
+ const [mustChangePassword, setMustChangePassword]=useState(false)
   useEffect(() => {
     async function checkSession() {
       const token = localStorage.getItem("token");
@@ -170,7 +289,11 @@ export default function Page() {
       }
 
       try {
-        await authService.me();
+      const session=  await authService.me();
+
+      setMustChangePassword(
+        session.user.must_change_password
+      )
         setAuthenticated(true);
       } catch {
         localStorage.removeItem("token");
@@ -265,10 +388,23 @@ export default function Page() {
       </div>
     );
   }
+  
 
   if (!authenticated) {
-    return <Login onLogin={() => setAuthenticated(true)} />;
+    return <Login onLogin={(mustChange) => {
+      setMustChangePassword(mustChange)
+      setAuthenticated(true)
+    }} />;
   }
+
+  if(mustChangePassword){
+    return(
+      <ChangePassword onPasswordChanged={() => setMustChangePassword(false)} />
+    )
+  }
+
+  console.log("Authentication state:", authenticated);
+console.log("Must change password:", mustChangePassword);
   return (
     <div className="min-h-screen bg-[#f6f8f6] text-[#17251e]  ">
       {/* Sidebar main */}
@@ -2449,7 +2585,7 @@ function GenericSection({
 }
 
 // Login
-function Login({ onLogin }: { onLogin: () => void }) {
+function Login({ onLogin }: { onLogin: (mustChangePassword:boolean) => void }) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -2474,7 +2610,7 @@ function Login({ onLogin }: { onLogin: () => void }) {
       localStorage.setItem("token", data.token);
       console.log("Logged-in user:", data.user);
 
-      onLogin();
+      onLogin(data.user.must_change_password);
     } catch (error) {
       setError(
         error instanceof Error
