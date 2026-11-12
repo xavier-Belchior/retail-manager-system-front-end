@@ -1023,9 +1023,15 @@ function Section({
         setSaved(false);
       }, 900);
     } catch (error) {
-      console.error("Error creating product:", error);
-      showToast("Error ao criar producto");
-    } finally {
+  console.error("Error creating product:", error);
+
+  const message =
+    error instanceof Error
+      ? error.message
+      : "Não foi possível criar o produto.";
+
+  showToast(message);
+} finally {
       setIsSubmitting(false);
     }
   }
