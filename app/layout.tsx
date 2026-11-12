@@ -3,24 +3,16 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Gestão Francisco Fernandes | Comércio a Retalho',
-  description: 'Sistema de gestão comercial para o Comércio a Retalho de Francisco Fernandes, Limitada.',
+  title: {
+    default: 'KambaGest | Gestão Comercial',
+    template: '%s | KambaGest',
+  },
+  description:
+    'KambaGest — Sistema de gestão comercial para produtos, estoque, vendas e relatórios.',
+  applicationName: 'KambaGest',
   generator: 'Xavier Belchior',
   icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
+    icon: '/shop.jpg',
     apple: '/apple-icon.png',
   },
 }
