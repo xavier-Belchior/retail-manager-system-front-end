@@ -410,113 +410,125 @@ export default function Page() {
   return (
     <div className="min-h-screen bg-[#f6f8f6] text-[#17251e]  ">
       {/* Sidebar main */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-[#e1e8e2] bg-[#fbfcfb] px-4 py-5 transition-transform lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
-      >
-        <div className="flex items-center gap-3 px-3">
-          <div
-            className="flex size-10 items-center justify-center rounded-xl 
-      bg-[#145a43] text-white"
-          >
-            <Store className="size-5" />
-          </div>
-          <div>
-            <p className="text-sm font-bold text-[#173d2e]">
-              Francisco Fernandes
-            </p>
-            <p className="text-[11px] text-[#84918b]">Gestão de comércio</p>
-          </div>
-          <button
-            onClick={() => setMobileOpen(false)}
-            className="ml-auto rounded-lg p-1 text-[#829089] lg:hidden"
-            aria-label="Fechar menu"
-          >
-            <X className="size-5" />
-          </button>
-        </div>
-        <div className="mt-8 flex flex-1 flex-col gap-6 overflow-y-auto">
-          {navGroups.map((group) => (
-            <div key={group.label}>
-              <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#a0aba4]">
-                {group.label}
-              </p>
-              <div className="flex flex-col gap-1">
-                {group.items.map((item) => (
-                  <button
-                    key={item.label}
-                    onClick={() => navigate(item.label)}
-                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors ${active === item.label ? "bg-[#e5f2eb] text-[#145a43]" : "text-[#64736b] hover:bg-[#f0f4f0]"}`}
-                  >
-                    <item.icon className="size-[18px]" />
-                    {item.label}
-                    {item.label === "Estoque" &&
+<aside
+  className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-[#e1e8e2] bg-[#fbfcfb] px-4 py-5 transition-transform lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
+>
+  {/* Brand */}
+  <div className="flex items-center gap-3 px-3">
+    <div className="flex size-10 items-center justify-center rounded-xl bg-[#145a43] text-white">
+      <Store className="size-5" />
+    </div>
+
+    <div>
+      <p className="text-sm font-bold text-[#173d2e]">KambaGest</p>
+      <p className="text-[11px] text-[#84918b]">
+        Gestão Comercial
+      </p>
+    </div>
+
+    <button
+      onClick={() => setMobileOpen(false)}
+      className="ml-auto rounded-lg p-1 text-[#829089] lg:hidden"
+      aria-label="Fechar menu"
+    >
+      <X className="size-5" />
+    </button>
+  </div>
+
+  {/* Navigation */}
+  <div className="mt-8 flex flex-1 flex-col gap-6 overflow-y-auto">
+    {navGroups.map((group) => (
+      <div key={group.label}>
+        <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#a0aba4]">
+          {group.label}
+        </p>
+
+        <div className="flex flex-col gap-1">
+          {group.items.map((item) => (
+            <button
+              key={item.label}
+              onClick={() => navigate(item.label)}
+              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors ${
+                active === item.label
+                  ? "bg-[#e5f2eb] text-[#145a43]"
+                  : "text-[#64736b] hover:bg-[#f0f4f0]"
+              }`}
+            >
+              <item.icon className="size-[18px]" />
+              {item.label}
+
+              {item.label === "Estoque" &&
+                inventory.filter(
+                  (product) => product.stock <= product.min_stock,
+                ).length > 0 && (
+                  <span className="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                    {
                       inventory.filter(
                         (product) => product.stock <= product.min_stock,
-                      ).length > 0 && (
-                        <span className="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
-                          {
-                            inventory.filter(
-                              (product) => product.stock <= product.min_stock,
-                            ).length
-                          }{" "}
-                        </span>
-                      )}
-                  </button>
-                ))}
-              </div>
-            </div>
+                      ).length
+                    }
+                  </span>
+                )}
+            </button>
           ))}
         </div>
+      </div>
+    ))}
+  </div>
+
+  {/* Settings */}
+  <button
+    onClick={() => navigate("Configurações")}
+    className="flex items-center gap-3 border-t border-[#e8ede9] px-3 pt-4 text-sm font-medium text-[#64736b]"
+  >
+    <Settings className="size-[18px]" />
+    Configurações
+  </button>
+
+  {/* Profile */}
+  <div className="relative mt-4">
+    <button
+      type="button"
+      onClick={() => setProfileOpen((open) => !open)}
+      aria-expanded={profileOpen}
+      className="flex w-full items-center gap-3 rounded-xl bg-[#f0f5f1] p-3 text-left transition-colors hover:bg-[#e7efe8]"
+    >
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#cbe4d5] text-xs font-bold text-[#145a43]">
+        KG
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-xs font-bold">Professor</p>
+        <p className="text-[11px] text-[#829089]">Administrador</p>
+      </div>
+
+      <ChevronDown
+        className={`size-4 shrink-0 text-[#829089] transition-transform duration-300 ${
+          profileOpen ? "rotate-180" : ""
+        }`}
+      />
+    </button>
+
+    <div
+      className={`grid transition-[grid-template-rows,opacity,margin] duration-300 ease-in-out ${
+        profileOpen
+          ? "mt-2 grid-rows-[1fr] opacity-100"
+          : "mt-0 grid-rows-[0fr] opacity-0"
+      }`}
+    >
+      <div className="overflow-hidden">
         <button
-          onClick={() => navigate("Configurações")}
-          className="flex items-center gap-3 border-t border-[#e8ede9] px-3 pt-4 text-sm font-medium text-[#64736b]"
+          type="button"
+          onClick={handleLogout}
+          className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
         >
-          <Settings className="size-[18px]" />
-          Configurações
+          <LogOut className="size-4" />
+          Sair
         </button>
-        <div className="relative mt-4">
-          <button
-            type="button"
-            onClick={() => setProfileOpen((open) => !open)}
-            aria-expanded={profileOpen}
-            className="flex w-full items-center gap-3 rounded-xl bg-[#f0f5f1] p-3 text-left transition-colors hover:bg-[#e7efe8]"
-          >
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#cbe4d5] text-xs font-bold text-[#145a43]">
-              MF
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-bold">Manuel Francisco</p>
-              <p className="text-[11px] text-[#829089]">Administrador</p>
-            </div>
-
-            <ChevronDown
-              className={`size-4 shrink-0 text-[#829089] transition-transform duration-300 ${
-                profileOpen ? "rotate-180" : ""
-              }`}
-            />
-          </button>
-
-          <div
-            className={`grid transition-[grid-template-rows,opacity,margin] duration-300 ease-in-out ${
-              profileOpen
-                ? "mt-2 grid-rows-[1fr] opacity-100"
-                : "mt-0 grid-rows-[0fr] opacity-0"
-            }`}
-          >
-            <div className="overflow-hidden">
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
-              >
-                <LogOut className="size-4" />
-                Sair
-              </button>
-            </div>
-          </div>
-        </div>
-      </aside>
+      </div>
+    </div>
+  </div>
+</aside>
       {mobileOpen && (
         <button
           className="fixed inset-0 z-30 bg-black/20 lg:hidden"
@@ -527,47 +539,54 @@ export default function Page() {
 
       {/* Main content */}
       <main className="lg:pl-64">
-        {/* Header */}
-        <header className="sticky top-0 z-20 flex h-20 items-center justify-between border-b border-[#e7ece8] bg-[#f8faf8]/90 px-5 backdrop-blur md:px-8">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setMobileOpen(true)}
-              className="rounded-lg p-2 text-[#66756d] lg:hidden"
-              aria-label="Abrir menu"
-            >
-              <Menu className="size-5" />
-            </button>
-            <div>
-              <p className="hidden text-xs font-medium text-[#8a968f] sm:block">
-                Terça-feira, 24 de Setembro de 2024
-              </p>
-              <h1 className="text-lg font-bold md:text-xl">
-                {isDashboard ? "Bom dia, Manuel" : active}
-              </h1>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 md:gap-4">
-            <button className="relative rounded-xl p-2.5 text-[#6f7d75] hover:bg-white">
-              <Bell className="size-5" />
-              <span className="absolute right-2 top-2 size-1.5 rounded-full bg-amber-500" />
-            </button>
-            <div className="hidden h-8 w-px bg-[#e1e8e2] md:block" />
-            <div className="flex items-center gap-2">
-              <div className="flex size-9 items-center justify-center rounded-full bg-[#cbe4d5] text-xs font-bold text-[#145a43]">
-                MF
-              </div>
-              <span className="hidden text-sm font-semibold md:block">
-                Manuel Francisco
-              </span>
-              <button
-                onClick={handleLogout}
-                className="rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:cursor-pointer hover:bg-red-50"
-              >
-                Sair
-              </button>
-            </div>
-          </div>
-        </header>
+    {/* Header */}
+<header className="sticky top-0 z-20 flex h-20 items-center justify-between border-b border-[#e7ece8] bg-[#f8faf8]/90 px-5 backdrop-blur md:px-8">
+  <div className="flex items-center gap-3">
+    <button
+      onClick={() => setMobileOpen(true)}
+      className="rounded-lg p-2 text-[#66756d] lg:hidden"
+      aria-label="Abrir menu"
+    >
+      <Menu className="size-5" />
+    </button>
+
+    <div>
+      <p className="hidden text-xs font-medium text-[#8a968f] sm:block">
+        KambaGest · Gestão Comercial
+      </p>
+
+      <h1 className="text-lg font-bold md:text-xl">
+        {isDashboard ? "Painel de Controlo" : active}
+      </h1>
+    </div>
+  </div>
+
+  <div className="flex items-center gap-2 md:gap-4">
+    <button className="relative rounded-xl p-2.5 text-[#6f7d75] hover:bg-white">
+      <Bell className="size-5" />
+      <span className="absolute right-2 top-2 size-1.5 rounded-full bg-amber-500" />
+    </button>
+
+    <div className="hidden h-8 w-px bg-[#e1e8e2] md:block" />
+
+    <div className="flex items-center gap-2">
+      <div className="flex size-9 items-center justify-center rounded-full bg-[#cbe4d5] text-xs font-bold text-[#145a43]">
+        KG
+      </div>
+
+      <span className="hidden text-sm font-semibold md:block">
+        Professor
+      </span>
+
+      <button
+        onClick={handleLogout}
+        className="rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:cursor-pointer hover:bg-red-50"
+      >
+        Sair
+      </button>
+    </div>
+  </div>
+</header>
 
         {/* The dashboard and  sections displays here */}
         <div className="mx-auto max-w-[1500px] p-5 md:p-8">
