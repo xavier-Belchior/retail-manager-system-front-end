@@ -51,6 +51,7 @@ import {
   salesService,
   supplierService,
   authService,
+  SaleItem,
 } from "@/lib/api-services";
 import LoadingSpinner from "@/components/ui/loading-spinner";
 const navGroups = [
@@ -220,7 +221,7 @@ function ChangePassword({
           />
         </div>
 
-        <div >
+        <div>
           <label className="mb-2 block text-sm font-medium text-[#173d2e]">
             Nova palavra-passe
           </label>
@@ -234,7 +235,7 @@ function ChangePassword({
           />
         </div>
 
-        <div >
+        <div>
           <label className="mb-2 block text-sm font-medium text-[#173d2e]">
             Confirmar nova palavra-passe
           </label>
@@ -277,7 +278,7 @@ export default function Page() {
   const [authChecked, setAuthChecked] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
- const [mustChangePassword, setMustChangePassword]=useState(false)
+  const [mustChangePassword, setMustChangePassword] = useState(false);
   useEffect(() => {
     async function checkSession() {
       const token = localStorage.getItem("token");
@@ -289,11 +290,9 @@ export default function Page() {
       }
 
       try {
-      const session=  await authService.me();
+        const session = await authService.me();
 
-      setMustChangePassword(
-        session.user.must_change_password
-      )
+        setMustChangePassword(session.user.must_change_password);
         setAuthenticated(true);
       } catch {
         localStorage.removeItem("token");
@@ -388,23 +387,26 @@ export default function Page() {
       </div>
     );
   }
-  
 
   if (!authenticated) {
-    return <Login onLogin={(mustChange) => {
-      setMustChangePassword(mustChange)
-      setAuthenticated(true)
-    }} />;
+    return (
+      <Login
+        onLogin={(mustChange) => {
+          setMustChangePassword(mustChange);
+          setAuthenticated(true);
+        }}
+      />
+    );
   }
 
-  if(mustChangePassword){
-    return(
+  if (mustChangePassword) {
+    return (
       <ChangePassword onPasswordChanged={() => setMustChangePassword(false)} />
-    )
+    );
   }
 
   console.log("Authentication state:", authenticated);
-console.log("Must change password:", mustChangePassword);
+  console.log("Must change password:", mustChangePassword);
   return (
     <div className="min-h-screen bg-[#f6f8f6] text-[#17251e]  ">
       {/* Sidebar main */}
@@ -982,7 +984,9 @@ function Section({
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [stockAdjustmentOpen, setStockAdjustmentOpen] = useState(false);
   const [editProductOpen, setEditProductOpen] = useState(false);
-
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUpdatingProduct, setIsUpdatingProduct] = useState(false);
+  const [isAdjustingStock, setIsAdjustingStock] = useState(false);
   const data =
     active === "Produtos" ? products : active === "Estoque" ? inventory : [];
   const title =
@@ -994,6 +998,10 @@ function Section({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
     try {
       const formData = new FormData(event.currentTarget);
       const payload = {
@@ -1017,6 +1025,8 @@ function Section({
     } catch (error) {
       console.error("Error creating product:", error);
       showToast("Error ao criar producto");
+    } finally {
+      setIsSubmitting(false);
     }
   }
   useEffect(() => {
@@ -1078,7 +1088,9 @@ function Section({
       {active === "Scanner" ? (
         <ScannerIntro open={() => setScannerOpen(true)} products={products} />
       ) : active === "Vendas / POS" ? (
-        <Pos showToast={showToast} />
+        <Pos showToast={showToast} reloadProducts={reloadProducts} />
+      ) : active === "Relatórios" ? (
+        <Reports />
       ) : isLoadingData && ["Produtos", "Estoque"].includes(active) ? (
         <LoadingSpinner message="A carregar dados..." />
       ) : data.length > 0 ? (
@@ -1169,6 +1181,8 @@ function Section({
             <form
               onSubmit={async (event) => {
                 event.preventDefault();
+                if (isAdjustingStock) return;
+                setIsAdjustingStock(true);
                 if (!selectedProduct) return;
 
                 try {
@@ -1188,6 +1202,8 @@ function Section({
                 } catch (error) {
                   console.error("Error ajusting stock:", error);
                   showToast("Error ao justar stock");
+                } finally {
+                  setIsAdjustingStock(false);
                 }
               }}
             >
@@ -1215,9 +1231,10 @@ function Section({
 
                 <button
                   type="submit"
-                  className="rounded-xl bg-[#006b52] px-4 py-2.5 text-sm font-semibold text-white"
+                  disabled={isAdjustingStock}
+                  className="rounded-xl bg-[#006b52] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#005740] disabled:cursor-wait disabled:opacity-70"
                 >
-                  Ajustar stock
+                  {isAdjustingStock ? "A ajustar stock..." : "Ajustar stock"}
                 </button>
               </div>
             </form>
@@ -1256,6 +1273,10 @@ function Section({
               onSubmit={async (event) => {
                 event.preventDefault();
 
+                if (isUpdatingProduct) return;
+
+                setIsUpdatingProduct(true);
+
                 try {
                   const formData = new FormData(event.currentTarget);
 
@@ -1284,6 +1305,8 @@ function Section({
                 } catch (error) {
                   console.error("Error updating product:", error);
                   showToast("Erro ao atualizar produto");
+                } finally {
+                  setIsUpdatingProduct(false);
                 }
               }}
               className="overflow-y-auto"
@@ -1403,9 +1426,12 @@ function Section({
 
                 <button
                   type="submit"
-                  className="h-11 rounded-[14px] bg-[#006b52] px-5 text-sm font-semibold text-white hover:bg-[#005740]"
+                  disabled={isUpdatingProduct}
+                  className="h-11 rounded-[14px] bg-[#006b52] px-5 text-sm font-semibold text-white transition-colors hover:bg-[#005740] disabled:cursor-wait disabled:opacity-70"
                 >
-                  Guardar alterações
+                  {isUpdatingProduct
+                    ? "A atualizar produto..."
+                    : "Guardar alterações"}
                 </button>
               </div>
             </form>
@@ -1554,11 +1580,19 @@ function Section({
                 </button>
                 <button
                   type="submit"
-                  disabled={saved}
-                  className="inline-flex h-11 items-center gap-2 rounded-[14px] bg-[#006b52] px-5 text-sm font-semibold text-white transition-colors hover:bg-[#005740] disabled:cursor-default disabled:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006b52] focus-visible:ring-offset-2"
+                  disabled={isSubmitting}
+                  className="inline-flex h-11 items-center gap-2 rounded-[14px] bg-[#006b52] px-5 text-sm font-semibold text-white transition-colors hover:bg-[#005740] disabled:cursor-wait disabled:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#006b52] focus-visible:ring-offset-2"
                 >
-                  {saved && <Check aria-hidden="true" className="size-4" />}
-                  {saved ? "Produto salvo" : "Guardar produto"}
+                  {isSubmitting ? (
+                    "A criar produto..."
+                  ) : saved ? (
+                    <>
+                      <Check aria-hidden="true" className="size-4" />
+                      Produto salvo
+                    </>
+                  ) : (
+                    "Adicionar produto"
+                  )}
                 </button>
               </div>
             </form>
@@ -1841,6 +1875,7 @@ function InventoryTable({
     </div>
   );
 }
+
 function ScannerIntro({
   open,
   products,
@@ -2011,7 +2046,13 @@ function ScannerModal({
   );
 }
 
-function Pos({ showToast }: { showToast: (s: string) => void }) {
+function Pos({
+  showToast,
+  reloadProducts,
+}: {
+  showToast: (s: string) => void;
+  reloadProducts: () => Promise<void>;
+}) {
   const [posProducts, setPosProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<(Product & { qty: number })[]>([]);
   const [search, setSearch] = useState("");
@@ -2020,31 +2061,37 @@ function Pos({ showToast }: { showToast: (s: string) => void }) {
   const [selectedCustomer, setSelectedCustomer] = useState("");
   const [showNewCustomer, setShowNewCustomer] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("cash");
-
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [isSubmittingSale, setIsSubmittingSale] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  async function refreshPosProducts() {
+    const data = await productService.list();
 
+    const formattedProducts = data.map((product) => ({
+      ...product,
+      min: product.min_stock,
+      status:
+        product.stock === 0
+          ? "Esgotado"
+          : product.stock <= product.min_stock
+            ? "Stock baixo"
+            : "Em stock",
+    }));
+
+    setPosProducts(formattedProducts);
+  }
   useEffect(() => {
     async function loadProducts() {
       try {
-        const data = await productService.list();
-
-        const formattedProducts = data.map((product) => ({
-          ...product,
-          min: product.min_stock,
-          status:
-            product.stock === 0
-              ? "Esgotado"
-              : product.stock <= product.min_stock
-                ? "Stock baixo"
-                : "Em stock",
-        }));
-
-        setPosProducts(formattedProducts);
+        await refreshPosProducts();
       } catch (error) {
         console.error("Error loading POS products:", error);
         showToast("Erro ao carregar produtos");
+      } finally {
+        setIsLoadingProducts(false);
       }
     }
+
     async function loadCustomers() {
       try {
         const data = await customerService.list();
@@ -2054,10 +2101,10 @@ function Pos({ showToast }: { showToast: (s: string) => void }) {
         showToast("Erro ao carregar clientes");
       }
     }
+
     loadCustomers();
     loadProducts();
   }, [showToast]);
-
   const filteredProducts = posProducts.filter((product) => {
     const value = search.toLowerCase();
 
@@ -2132,45 +2179,63 @@ function Pos({ showToast }: { showToast: (s: string) => void }) {
           />
         </div>
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          {filteredProducts.slice(0, 4).map((p) => (
-            <button
-              key={p.sku}
-              onClick={() => {
-                if (p.stock <= 0) {
-                  showToast("Produto sem stock");
-                  return;
-                }
-
-                const existing = cart.find((item) => item.id === p.id);
-
-                if (existing) {
-                  if (existing.qty >= p.stock) {
-                    showToast("Quantidade superior ao stock disponível");
+          {isLoadingProducts ? (
+            <div className="col-span-full flex min-h-40 flex-col items-center justify-center gap-3">
+              <LoadingSpinner message="A carregar produtos..." />
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="col-span-full flex min-h-40 items-center justify-center">
+              <p className="text-sm text-[#89958e]">
+                Nenhum produto encontrado.
+              </p>
+            </div>
+          ) : (
+            filteredProducts.slice(0, 4).map((p) => (
+              <button
+                key={p.sku}
+                onClick={() => {
+                  if (p.stock <= 0) {
+                    showToast("Produto sem stock");
                     return;
                   }
 
-                  setCart(
-                    cart.map((item) =>
-                      item.id === p.id ? { ...item, qty: item.qty + 1 } : item,
-                    ),
-                  );
-                } else {
-                  setCart([...cart, { ...p, qty: 1 }]);
-                }
-              }}
-              className="flex items-center gap-3 rounded-xl border border-[#edf1ed] p-3 text-left hover:border-[#a8cdb4] hover:bg-[#f8fbf8]"
-            >
-              <div className="flex size-11 items-center justify-center rounded-xl bg-[#f1f5f2]">
-                <Package className="size-5 text-[#6c8174]" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold">{p.name}</p>
-                <p className="mt-1 text-xs text-[#145a43]">{money(p.price)}</p>
-                <p className="text-[11px] text-[#89958e]">Stock: {p.stock}</p>
-              </div>
-              <Plus className="size-4 text-[#789084]" />
-            </button>
-          ))}
+                  const existing = cart.find((item) => item.id === p.id);
+
+                  if (existing) {
+                    if (existing.qty >= p.stock) {
+                      showToast("Quantidade superior ao stock disponível");
+                      return;
+                    }
+
+                    setCart(
+                      cart.map((item) =>
+                        item.id === p.id
+                          ? { ...item, qty: item.qty + 1 }
+                          : item,
+                      ),
+                    );
+                  } else {
+                    setCart([...cart, { ...p, qty: 1 }]);
+                  }
+                }}
+                className="flex items-center gap-3 rounded-xl border border-[#edf1ed] p-3 text-left hover:border-[#a8cdb4] hover:bg-[#f8fbf8]"
+              >
+                <div className="flex size-11 items-center justify-center rounded-xl bg-[#f1f5f2]">
+                  <Package className="size-5 text-[#6c8174]" />
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">{p.name}</p>
+                  <p className="mt-1 text-xs text-[#145a43]">
+                    {money(p.price)}
+                  </p>
+                  <p className="text-[11px] text-[#89958e]">Stock: {p.stock}</p>
+                </div>
+
+                <Plus className="size-4 text-[#789084]" />
+              </button>
+            ))
+          )}
         </div>
       </div>
       <div className="rounded-2xl border border-[#e7ebe7] bg-white p-5">
@@ -2386,11 +2451,14 @@ function Pos({ showToast }: { showToast: (s: string) => void }) {
           </div>
         </div>
         <button
+          disabled={isSubmittingSale}
           onClick={async () => {
             if (cart.length === 0) {
               showToast("O carrinho está vazio");
               return;
             }
+
+            setIsSubmittingSale(true);
 
             try {
               const payload = {
@@ -2414,18 +2482,35 @@ function Pos({ showToast }: { showToast: (s: string) => void }) {
               });
 
               setCart([]);
-              setSelectedCustomer();
+              setSelectedCustomer("");
               setPaymentMethod("cash");
+              try {
+                await Promise.all([reloadProducts(), refreshPosProducts()]);
+              } catch (refreshError) {
+                console.error(
+                  "Error refreshing products after sale:",
+                  refreshError,
+                );
+              }
+
               showToast("Venda realizada com sucesso");
             } catch (error) {
               console.error("Error creating sale:", error);
               showToast("Erro ao realizar venda");
+            } finally {
+              setIsSubmittingSale(false);
             }
           }}
-          className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#145a43] py-3 text-sm font-bold text-white"
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#145a43] py-3 text-sm font-bold text-white transition-colors hover:bg-[#0e4935] disabled:cursor-wait disabled:opacity-70"
         >
-          <CreditCard className="size-4" />
-          Concluir venda
+          {isSubmittingSale ? (
+            "A processar venda..."
+          ) : (
+            <>
+              <CreditCard className="size-4" />
+              Concluir venda
+            </>
+          )}
         </button>
       </div>
 
@@ -2535,6 +2620,460 @@ function Pos({ showToast }: { showToast: (s: string) => void }) {
   );
 }
 
+function Reports() {
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [search, setSearch] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [selectedReceipt, setSelectedReceipt] = useState<{
+    sale: Sale;
+    items: SaleItem[];
+  } | null>(null);
+
+  const [isLoadingReceipt, setIsLoadingReceipt] = useState(false);
+
+  useEffect(() => {
+    async function loadSales() {
+      try {
+        setIsLoading(true);
+        const data = await salesService.list();
+        setSales(data);
+      } catch (err) {
+        console.error("Error loading sales history:", err);
+        setError("Não foi possível carregar o histórico de vendas.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadSales();
+  }, []);
+
+  const filteredSales = sales.filter((sale) => {
+    const term = search.toLowerCase();
+    const saleDate = new Date(sale.created_at);
+
+    const matchesSearch =
+      String(sale.id).includes(term) ||
+      (sale.customer || "Cliente balcão").toLowerCase().includes(term);
+
+    const matchesStartDate =
+      !startDate || saleDate >= new Date(`${startDate}T00:00:00`);
+
+    const matchesEndDate =
+      !endDate || saleDate < new Date(`${endDate}T23:59:59.999`);
+
+    return matchesSearch && matchesStartDate && matchesEndDate;
+  });
+  function exportCSV() {
+    const headers = [
+      "Venda",
+      "Data",
+      "Cliente",
+      "Funcionário",
+      "Total",
+      "Pagamento",
+      "Estado",
+    ];
+
+    const rows = filteredSales.map((sale) => [
+      sale.id,
+      new Date(sale.created_at).toLocaleString("pt-AO"),
+      sale.customer || "Cliente balcão",
+      sale.employee || "—",
+      sale.total,
+      sale.payment_method,
+      sale.status,
+    ]);
+
+    const csv = [headers, ...rows]
+      .map((row) =>
+        row
+          .map((value) => `"${String(value ?? "").replace(/"/g, '""')}"`)
+          .join(";"),
+      )
+      .join("\n");
+
+    const blob = new Blob(["\uFEFF" + csv], {
+      type: "text/csv;charset=utf-8;",
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = `historico-vendas-${new Date().toISOString().slice(0, 10)}.csv`;
+
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleViewReceipt(saleId: number) {
+    try {
+      setIsLoadingReceipt(true);
+
+      const receipt = await salesService.getById(saleId);
+
+      setSelectedReceipt(receipt);
+    } catch (error) {
+      console.error("Error loading receipt:", error);
+    } finally {
+      setIsLoadingReceipt(false);
+    }
+  }
+
+  function handlePrintReceipt() {
+  if (!selectedReceipt) return;
+
+  const { sale, items } = selectedReceipt;
+
+  const formatKz = (value: string | number) =>
+    `${Number(value).toLocaleString("pt-AO")} Kz`;
+
+  const escapeHTML = (value: string) =>
+    value.replace(/[&<>"']/g, (char) => {
+      const entities: Record<string, string> = {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      };
+
+      return entities[char];
+    });
+
+  const receiptWindow = window.open("", "_blank", "width=420,height=700");
+
+  if (!receiptWindow) {
+    alert("Permita a abertura de janelas pop-up para imprimir o comprovativo.");
+    return;
+  }
+
+  const itemsHTML = items
+    .map(
+      (item) => `
+        <tr>
+          <td>${escapeHTML(item.product || "Produto")}</td>
+          <td>${item.quantity}</td>
+          <td>${formatKz(item.subtotal)}</td>
+        </tr>
+      `,
+    )
+    .join("");
+
+  receiptWindow.document.write(`
+    <!DOCTYPE html>
+    <html lang="pt">
+      <head>
+        <meta charset="UTF-8" />
+        <title>Comprovativo #${sale.id}</title>
+        <style>
+          @page {
+            size: 80mm auto;
+            margin: 4mm;
+          }
+
+          * {
+            box-sizing: border-box;
+          }
+
+          body {
+            width: 72mm;
+            margin: 0 auto;
+            font-family: Arial, sans-serif;
+            color: #222;
+            font-size: 12px;
+          }
+
+          .center { text-align: center; }
+          .divider {
+            border-top: 1px dashed #555;
+            margin: 12px 0;
+          }
+
+          h2 {
+            font-size: 18px;
+            margin-bottom: 5px;
+          }
+
+          p {
+            margin: 5px 0;
+          }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+          }
+
+          th, td {
+            padding: 6px 2px;
+            text-align: left;
+          }
+
+          th:last-child, td:last-child {
+            text-align: right;
+          }
+
+          .total {
+            font-size: 16px;
+            font-weight: bold;
+          }
+
+          @media print {
+            body { width: 72mm; }
+          }
+        </style>
+      </head>
+
+      <body>
+        <div class="center">
+          <h2>COMPROVATIVO</h2>
+          <p>Venda #${sale.id}</p>
+        </div>
+
+        <div class="divider"></div>
+
+        <p><strong>Data:</strong> ${new Date(sale.created_at).toLocaleString("pt-AO")}</p>
+        <p><strong>Cliente:</strong> ${escapeHTML(sale.customer || "Cliente balcão")}</p>
+        <p><strong>Funcionário:</strong> ${escapeHTML(sale.employee || "—")}</p>
+
+        <div class="divider"></div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Produto</th>
+              <th>Qtd.</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHTML}
+          </tbody>
+        </table>
+
+        <div class="divider"></div>
+
+        <p class="total">TOTAL: ${formatKz(sale.total)}</p>
+        <p><strong>Pagamento:</strong> ${escapeHTML(sale.payment_method)}</p>
+        <p><strong>Estado:</strong> ${escapeHTML(sale.status)}</p>
+
+        <div class="divider"></div>
+
+        <p class="center">Obrigado pela preferência!</p>
+
+        <script>
+          window.onload = () => window.print();
+        </script>
+      </body>
+    </html>
+  `);
+
+  receiptWindow.document.close();
+}
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-bold text-[#26372e]">
+          Histórico de vendas
+        </h2>
+        <p className="mt-1 text-sm text-[#7d8982]">
+          Consulte todas as vendas realizadas.
+        </p>
+      </div>
+
+      <div className="rounded-2xl border border-[#edf1ed] bg-white p-5">
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <input
+            type="text"
+            placeholder="Pesquisar por venda ou cliente..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-11 w-full rounded-xl border border-[#dce5e0] px-4 text-sm outline-none focus:border-[#145a43] sm:max-w-sm"
+          />
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="h-11 rounded-xl border border-[#dce5e0] px-3 text-sm outline-none focus:border-[#145a43]"
+            aria-label="Data inicial"
+          />
+
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="h-11 rounded-xl border border-[#dce5e0] px-3 text-sm outline-none focus:border-[#145a43]"
+            aria-label="Data final"
+          />
+
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-[#7d8982]">
+              {filteredSales.length} vendas encontradas
+            </span>
+
+            <button
+              onClick={exportCSV}
+              disabled={filteredSales.length === 0}
+              className="rounded-xl bg-[#145a43] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#0e4935] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Exportar CSV
+            </button>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <p className="py-10 text-center text-sm text-[#7d8982]">
+            A carregar histórico...
+          </p>
+        ) : error ? (
+          <p className="py-10 text-center text-sm text-red-600">{error}</p>
+        ) : filteredSales.length === 0 ? (
+          <p className="py-10 text-center text-sm text-[#7d8982]">
+            Nenhuma venda encontrada.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[750px] text-left text-sm">
+              <thead>
+                <tr className="bg-[#fafcfa] text-[11px] uppercase tracking-wide text-[#8b9790]">
+                  <th className="px-4 py-3">Venda</th>
+                  <th className="px-4 py-3">Data</th>
+                  <th className="px-4 py-3">Cliente</th>
+                  <th className="px-4 py-3">Funcionário</th>
+                  <th className="px-4 py-3">Total</th>
+                  <th className="px-4 py-3">Pagamento</th>
+                  <th className="px-4 py-3">Estado</th>
+                  <th className="px-4 py-3">Comprovativo</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {filteredSales.map((sale) => (
+                  <tr
+                    key={sale.id}
+                    className="border-t border-[#edf1ed] text-[#536159]"
+                  >
+                    <td className="px-4 py-4 font-semibold text-[#26372e]">
+                      #{sale.id}
+                    </td>
+                    <td className="px-4 py-4">
+                      {new Date(sale.created_at).toLocaleString("pt-AO")}
+                    </td>
+                    <td className="px-4 py-4">
+                      {sale.customer || "Cliente balcão"}
+                    </td>
+                    <td className="px-4 py-4">{sale.employee || "—"}</td>
+                    <td className="px-4 py-4 font-semibold">
+                      {Number(sale.total).toLocaleString("pt-AO")} Kz
+                    </td>
+                    <td className="px-4 py-4">{sale.payment_method}</td>
+                    <td className="px-4 py-4">{sale.status}</td>
+                    <td className="px-4 py-4">
+                      <button
+                        onClick={() => handleViewReceipt(sale.id)}
+                        className="font-semibold text-[#145a43] hover:underline"
+                      >
+                        Ver comprovativo
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {selectedReceipt && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+      <div className="mb-5 flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-[#26372e]">
+            Comprovativo #{selectedReceipt.sale.id}
+          </h2>
+          <p className="text-sm text-[#7d8982]">
+            Detalhes da venda
+          </p>
+        </div>
+
+        <button
+          onClick={() => setSelectedReceipt(null)}
+          className="text-xl text-gray-500 hover:text-gray-800"
+        >
+          ×
+        </button>
+      </div>
+
+      <div className="space-y-3 text-sm">
+        <p>
+          <strong>Data:</strong>{" "}
+          {new Date(selectedReceipt.sale.created_at).toLocaleString("pt-AO")}
+        </p>
+
+        <p>
+          <strong>Cliente:</strong>{" "}
+          {selectedReceipt.sale.customer || "Cliente balcão"}
+        </p>
+
+        <div className="border-t border-dashed pt-4">
+          <h3 className="mb-3 font-bold">Produtos</h3>
+
+          {selectedReceipt.items.map((item) => (
+            <div
+              key={item.id}
+              className="flex justify-between gap-3 border-b py-2"
+            >
+              <div>
+                <p className="font-medium">
+                  {item.product || "Produto"}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {item.quantity} × {Number(item.unit_price).toLocaleString("pt-AO")} Kz
+                </p>
+              </div>
+
+              <p className="font-semibold">
+                {Number(item.subtotal).toLocaleString("pt-AO")} Kz
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="border-t border-dashed pt-4">
+          <div className="flex justify-between text-lg font-bold">
+            <span>Total</span>
+            <span>
+              {Number(selectedReceipt.sale.total).toLocaleString("pt-AO")} Kz
+            </span>
+          </div>
+
+          <p className="mt-2">
+            <strong>Pagamento:</strong>{" "}
+            {selectedReceipt.sale.payment_method}
+          </p>
+        </div>
+      </div>
+
+      <button
+        onClick={handlePrintReceipt}
+        className="mt-6 w-full rounded-xl bg-[#145a43] py-3 font-semibold text-white hover:bg-[#0e4935]"
+      >
+        Imprimir / Guardar PDF
+      </button>
+    </div>
+  </div>
+)}
+    </div>
+  );
+}
+
 function GenericSection({
   active,
   showToast,
@@ -2585,7 +3124,11 @@ function GenericSection({
 }
 
 // Login
-function Login({ onLogin }: { onLogin: (mustChangePassword:boolean) => void }) {
+function Login({
+  onLogin,
+}: {
+  onLogin: (mustChangePassword: boolean) => void;
+}) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);

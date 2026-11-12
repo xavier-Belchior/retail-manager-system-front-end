@@ -68,19 +68,37 @@ export const inventoryService = {
   list: () => request<InventoryResponse>('/inventory'),
   adjust: (payload: unknown) => request('/inventory/adjust', { method: 'POST', body: JSON.stringify(payload) }),
 }
-export type Sale = {
+// export type Sale = {
+//   id: number;
+//   total: string;
+//   payment_method: string;
+//   status: string;
+//   created_at: string;
+//   customer: string | null;
+//   employee?: string | null;
+// };
+
+export type SaleItem = {
   id: number;
-  total: string;
-  payment_method: string;
-  status: string;
-  created_at: string;
-  customer: string | null;
+  product_id: number;
+  product: string | null;
+  quantity: number;
+  unit_price: string;
+  subtotal: string;
 };
 
 export const salesService = {
-  list: (params = '') => request<Sale[]>(`/sales${params}`),
-  create: (payload: unknown) => request('/sales/create', { method: 'POST', body: JSON.stringify(payload) }),
-}
+  getById: (id: number) =>
+    request<{ sale: Sale; items: SaleItem[] }>(`/sales/${id}`),
+
+  list: (params = "") => request<Sale[]>(`/sales${params}`),
+
+  create: (payload: unknown) =>
+    request("/sales/create", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+};
 
 export const customerService = {
   list: (params = '') => request(`/customers${params}`),
